@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SEO FAQ Schema Generator</title>
+    <title>SchemaCraft</title>
     <style>
         :root {
             --primary-color: #4285f4;
@@ -297,12 +297,11 @@
 </head>
 <body>
     <div class="container">
-        <h1>SEO FAQ Schema Generator</h1>
+        <h1>SchemaCraft</h1>
         
-        <!-- <div class="explanation">
-            <p>This tool uses Gemini Flash to generate FAQ Schema markup for SEO. Enter keywords below to get structured data you can add to your website to enhance search results.</p>
-            <p>The output is JSON Schema markup in FAQPage format that Google and other search engines recognize to display rich results.</p>
-        </div> -->
+        <div class="explanation">
+            <p>Boost your search visibility with structured data! This tool uses Gemini Flash to instantly generate FAQ Schema markup based on your keywords. Simply enter your topic below, and we’ll provide ready-to-use JSON-LD code to enhance your website’s search results with rich snippets.</p>
+        </div>
         
         <div class="keyword-inputs">
             <div class="keyword-input">
@@ -468,12 +467,12 @@
 
         // Queue system for API requests
         class RequestQueue {
-            constructor(concurrency = 1, requestDelay = 3000) {
+            constructor(concurrency = 6, requestDelay = 167) { // 1000ms/6 ≈ 167ms between requests
                 this.queue = [];
                 this.concurrency = concurrency;
                 this.requestDelay = requestDelay;
                 this.running = 0;
-                this.lastRequestTime = 0;
+                this.lastRequestTimes = new Array(concurrency).fill(0); // Track last request time for each concurrent slot
             }
 
             async add(task) {
@@ -493,18 +492,19 @@
                 }
 
                 this.running++;
+                const slotIndex = this.running - 1;
                 const { task, resolve, reject } = this.queue.shift();
 
                 try {
-                    // Ensure minimum delay between requests
+                    // Ensure minimum delay between requests for this slot
                     const now = Date.now();
-                    const timeSinceLastRequest = now - this.lastRequestTime;
+                    const timeSinceLastRequest = now - this.lastRequestTimes[slotIndex];
                     if (timeSinceLastRequest < this.requestDelay) {
                         await delay(this.requestDelay - timeSinceLastRequest);
                     }
 
                     const result = await task();
-                    this.lastRequestTime = Date.now();
+                    this.lastRequestTimes[slotIndex] = Date.now();
                     resolve(result);
                 } catch (error) {
                     reject(error);
@@ -516,7 +516,7 @@
         }
 
         // Create a queue instance for Ahrefs API requests
-        const ahrefsQueue = new RequestQueue(1, 3000); // 1 concurrent request, 3 second delay
+        const ahrefsQueue = new RequestQueue(6, 167); // 6 concurrent requests, ~167ms delay between requests
 
         async function checkAhrefsRanking(keyword) {
             return ahrefsQueue.add(async () => {
@@ -653,7 +653,7 @@
                                 const difficulty = ahrefsData?.data?.difficulty || 0;
                                 const globalVolume = ahrefsData?.data?.globalSearchVolume || 0;
                                 
-                                if (difficulty < 30 && globalVolume > 2000) {
+                                if (difficulty < 40 && globalVolume > 2000) {
                                     filteredCount++;
                                     const ahrefsMetrics = `<div class="ahrefs-data">
                                         <p><strong>Ahrefs Metrics:</strong></p>
@@ -679,10 +679,10 @@
                             if (filteredCount > 0) {
                                 // Update the heading to show detailed filtering information
                                 relatedDiv.querySelector('h5').textContent = 
-                                    `Related Keywords (Found ${totalInitialKeywords} keywords from SEO API, ${filteredCount} keywords met final criteria: Difficulty < 30 and Global Search Volume > 2000)`;
+                                    `Related Keywords (Found ${totalInitialKeywords} keywords from SEO API, ${filteredCount} keywords met final criteria: Difficulty < 40 and Global Search Volume > 2000)`;
                                 keywordDiv.appendChild(relatedDiv);
                             } else {
-                                keywordDiv.innerHTML += `<p>No keywords found matching the criteria (Difficulty < 30 and Global Search Volume > 2000) from initial ${totalInitialKeywords} keywords.</p>`;
+                                keywordDiv.innerHTML += `<p>No keywords found matching the criteria (Difficulty < 40 and Global Search Volume > 2000) from initial ${totalInitialKeywords} keywords.</p>`;
                             }
                         } else {
                             keywordDiv.innerHTML += '<p>No related keywords found meeting the criteria.</p>';
